@@ -92,9 +92,6 @@ async def on_ready() -> None:
         for gid in guild_ids:
             guild = discord.Object(id=gid)
             bot.tree.copy_global_to(guild=guild)
-            bot.tree.clear_commands(guild=guild)
-            synced = await bot.tree.sync(guild=guild)
-            bot.tree.clear_commands(guild=guild)
             synced = await bot.tree.sync(guild=guild)
             logger.info(f"Synced {len(synced)} command(s) to guild ID: {gid}")
     except Exception as e:
