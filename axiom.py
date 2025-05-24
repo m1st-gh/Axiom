@@ -186,7 +186,7 @@ async def invoke_jarvis(interaction: discord.Interaction, query: str):
     return_message = jarvis.get_completion(
         model="meta-llama/llama-3.3-8b-instruct:free", messages=message_history
     )
-    interaction.response.send_message(f"{return_message}")
+    await interaction.response.send_message(f"{return_message}")
 
 
 bot.run(token=env["DISCORD_TOKEN"])
