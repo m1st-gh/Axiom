@@ -1,12 +1,15 @@
+from datetime import datetime
 import os
 import sys
 import logging
+
 
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from tinydb import TinyDB, Query
 from typing import Any
+from apis.orclient import OpenRouterClient
 
 
 # --- Environment Variable Helper ---
@@ -46,7 +49,7 @@ def setup_logging():
 logger = setup_logging()
 
 # --- Main Execution ---
-env = require_env_vars("DISCORD_TOKEN", "DISCORD_GUILD_ID")
+env = require_env_vars("DISCORD_TOKEN", "DISCORD_GUILD_ID", "OPENROUTER_API_KEY")
 
 # Parse guild IDs as a list of ints
 try:
@@ -65,7 +68,12 @@ bot = commands.Bot(
 
 # Setup database
 db = TinyDB("axiom_db.json")
-pin_channels = db.table("Pin_channels")
+pin_channels = db.table("pin_channels")
+jarvis_messages = db.table("jarvis_messages")
+
+# Setup Openrouter
+
+jarvis = OpenRouterClient(api_key=env["OPENROUTER_API_KEY"])
 
 
 # Set pin channel function
@@ -73,7 +81,7 @@ def set_pin_channel(guild_id: int, channel_id: int) -> None:
     """Set the pin channel for a guild."""
     Guild = Query()
     pin_channels.upsert(
-        {"guild_id": guild_id, "pin_channel_id": channel_id}, Guild.guild_id == guild_id
+        {"guild_id": guild_id, "channel_id": channel_id}, Guild.guild_id == guild_id
     )
 
 
@@ -127,9 +135,11 @@ async def reprint(interaction: discord.Interaction, message: discord.Message):
 
 async def get_channel_from_id(bot, channel_id: int) -> discord.TextChannel | None:
     """Get a channel object from its ID."""
+
     channel = bot.get_channel(channel_id)
+
+    # If the channel isn't found in cache, fetch it
     if channel is None:
-        # If the channel isn't found in cache, fetch it
         try:
             channel = await bot.fetch_channel(channel_id)
         except discord.NotFound:
@@ -152,6 +162,31 @@ async def pin_message(interaction: discord.Interaction, message: discord.Message
         return
     await interaction.response.send_message(channel.mention)
     await message.forward(channel)
+
+
+@bot.tree.command(name="jarvis")
+@discord.app_commands.describe(query="The message")
+async def invoke_jarvis(interaction: discord.Interaction, query: str):
+    message_history = jarvis_messages.all()
+    to_remove: list[int] = []
+    for message in message_history:
+        timestamp = message["timestamp"]
+        current_time = datetime.now().timestamp()
+        if timestamp < current_time - 3600:
+            to_remove.append(message.doc_id)
+    if len(to_remove) != 0:
+        jarvis_messages.remove(to_remove)
+    message = {
+        "role": "user",
+        "content": query,
+        "timestamp": datetime.now().timestamp(),
+    }
+    jarvis_messages.insert(message)
+    message_history = jarvis_messages.all()
+    return_message = jarvis.get_completion(
+        model="meta-llama/llama-3.3-8b-instruct:free", messages=message_history
+    )
+    interaction.response.send_message(f"{return_message}")
 
 
 bot.run(token=env["DISCORD_TOKEN"])
