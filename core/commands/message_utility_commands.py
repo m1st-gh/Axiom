@@ -51,12 +51,7 @@ class MessageUtilityCommands(commands.Cog):
 # --- Context Menu Commands (must be at module level) ---
 
 
-@app_commands.context_menu(name="Reprint message")
-async def reprint(interaction: discord.Interaction, message: discord.Message):
-    await interaction.response.send_message(f"{message.content}")
-
-
-@app_commands.context_menu(name="Forward message")
+@app_commands.context_menu(name="Pin message")
 async def forward_message(interaction: discord.Interaction, message: discord.Message):
     if not interaction.guild_id:
         await interaction.response.send_message(

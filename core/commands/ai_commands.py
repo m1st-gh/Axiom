@@ -39,7 +39,7 @@ class AICommands(commands.Cog):
 
     @app_commands.command(name="summary")
     async def summarize_channel(self, interaction: discord.Interaction):
-        """Summarize recent messages in the channel"""
+        """Ask Jarvis to summarize the last 200 messages."""
         await interaction.response.defer(thinking=True)
         if interaction.channel_id is not None:
             channel = self.bot.get_channel(interaction.channel_id)
@@ -87,7 +87,7 @@ class AICommands(commands.Cog):
     @app_commands.command(name="ask")
     @app_commands.describe(query="Your question for the AI assistant")
     async def ask_ai(self, interaction: discord.Interaction, query: str):
-        """Ask the AI assistant a question"""
+        """Ask the AI assistant, Javis a question"""
         await interaction.response.defer(thinking=True)
 
         # Add user message to history
