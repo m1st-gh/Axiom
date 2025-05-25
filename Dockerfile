@@ -9,4 +9,4 @@ RUN uv sync --locked --link-mode=copy
 RUN uv python install 3.13
 COPY . .
 
-CMD ["uv", "run", "python", "axiom.py"]
+CMD ["uv", "run", "python", "run.py"]
