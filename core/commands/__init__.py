@@ -2,11 +2,11 @@ import os
 import importlib
 from discord.ext import commands
 
-from axiom import logger
+from core import logger  # Use your new generic logger import
 
 
 async def load_commands(bot: commands.Bot):
-    """Load all command modules from the commands directory."""
+    """Dynamically load all command modules from the commands directory."""
     current_dir = os.path.dirname(__file__)
     command_modules = [
         filename[:-3]
@@ -16,7 +16,7 @@ async def load_commands(bot: commands.Bot):
 
     for module_name in command_modules:
         try:
-            module_path = f"axiom.commands.{module_name}"
+            module_path = f"core.commands.{module_name}"  # Update to your package
             module = importlib.import_module(module_path)
             await module.setup(bot)
             logger.info(f"Loaded command module: {module_name}")

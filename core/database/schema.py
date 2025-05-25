@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 @dataclass
-class PinChannel:
+class ChannelMapping:
     guild_id: int
     channel_id: int
 
@@ -12,12 +12,12 @@ class PinChannel:
         return {"guild_id": self.guild_id, "channel_id": self.channel_id}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PinChannel":
+    def from_dict(cls, data: Dict[str, Any]) -> "ChannelMapping":
         return cls(guild_id=data["guild_id"], channel_id=data["channel_id"])
 
 
 @dataclass
-class JarvisMessage:
+class ChatMessage:
     role: str
     content: str
     timestamp: float
@@ -29,7 +29,7 @@ class JarvisMessage:
     @classmethod
     def from_dict(
         cls, data: Dict[str, Any], doc_id: Optional[int] = None
-    ) -> "JarvisMessage":
+    ) -> "ChatMessage":
         return cls(
             role=data["role"],
             content=data["content"],
@@ -38,5 +38,5 @@ class JarvisMessage:
         )
 
     @classmethod
-    def create_user_message(cls, content: str) -> "JarvisMessage":
+    def create_user_message(cls, content: str) -> "ChatMessage":
         return cls(role="user", content=content, timestamp=datetime.now().timestamp())

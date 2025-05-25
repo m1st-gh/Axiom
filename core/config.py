@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 
 class Config:
-    """Configuration manager for the Axiom bot."""
+    """Configuration manager for the bot."""
 
     _instance = None
 

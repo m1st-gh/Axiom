@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Generator, Any, Union
 import asyncio
 import functools
 
-from axiom import logger
+from core import logger
 
 
 class OpenRouterClient:
@@ -45,7 +45,7 @@ class OpenRouterClient:
             default_headers=self.default_headers if self.default_headers else None,
         )
 
-        logger.info("OpenRouter client initialized")
+        logger.info("API client initialized")
 
     def get_completion(
         self,
@@ -101,17 +101,17 @@ class OpenRouterClient:
                     content = completion.choices[0].message.content
                     logger.debug(f"Received completion: {content[:50]}...")
                     return content
-                logger.warning("Received empty completion from OpenRouter")
+                logger.warning("Received empty completion from API")
                 return None
 
         except APIError as e:
-            logger.error(f"OpenRouter API Error: {e}")
+            logger.error(f"API Error: {e}")
             if stream:  # For stream, error is raised to be handled by caller
                 raise
             return None
 
         except Exception as e:
-            logger.error(f"An unexpected error occurred with OpenRouter: {e}")
+            logger.error(f"An unexpected error occurred with API: {e}")
             if stream:
                 raise
             return None
@@ -144,23 +144,20 @@ class OpenRouterClient:
 
     def list_models(self) -> List[Dict[str, Any]]:
         """
-        Lists available models from OpenRouter (via the OpenAI compatible endpoint).
-        Note: This might not list ALL models on OpenRouter, but those exposed
-        through the OpenAI-compatible /models endpoint. For a full list,
-        refer to OpenRouter documentation or their site.
+        Lists available models from the API.
 
         Returns:
             List[Dict[str, Any]]: A list of model objects.
         """
         try:
-            logger.debug("Listing available models from OpenRouter")
+            logger.debug("Listing available models")
             models = self.client.models.list()
             model_list = [model.to_dict() for model in models.data]
-            logger.info(f"Retrieved {len(model_list)} models from OpenRouter")
+            logger.info(f"Retrieved {len(model_list)} models")
             return model_list
 
         except APIError as e:
-            logger.error(f"OpenRouter API Error listing models: {e}")
+            logger.error(f"API Error listing models: {e}")
             return []
 
         except Exception as e:

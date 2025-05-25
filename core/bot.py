@@ -2,30 +2,27 @@ import discord
 from discord.ext import commands
 import asyncio
 import sys
+import logging
+from core import logger
+from core.config import config
+from core.commands import load_commands
 
-from axiom import logger
-from axiom.config import config
-from axiom.commands import load_commands
 
-
-class AxiomBot:
-    """Main Axiom Discord bot class."""
+class DiscordBot:
+    """Main Discord bot class."""
 
     def __init__(self):
-        # Load required configuration
         self.config = config.require_env_vars(
             "DISCORD_TOKEN",
             "DISCORD_GUILD_ID",
             "OPENROUTER_API_KEY",
-            "AXIOM_DB_PATH",
-            "JARVIS_SYSTEM_PROMPT_PATH",
-            "JARVIS_TLDR_PROMPT",
+            "DB_PATH",
+            "AI_SYSTEM_PROMPT_PATH",
+            "AI_SUMMARY_PROMPT_PATH",
         )
 
-        # Parse guild IDs
         self.guild_ids = config.get_guild_ids()
 
-        # Initialize bot with intents
         intents = discord.Intents.default()
         intents.message_content = True
 
@@ -57,7 +54,19 @@ class AxiomBot:
         await load_commands(self.bot)
 
     def run(self):
-        """Run the bot."""
+        """Run the bot and ensure Discord.py uses our logger."""
+        # --- Overwrite discord.py logger handlers with our own ---
+        discord_logger = logger  # Use our global logger
+        discordpy_logger = discord.utils.setup_logging  # discord.py's helper
+
+        # Remove all handlers from discord.py's logger and add ours
+        discord_logger_obj = logging.getLogger("discord")
+        discord_logger_obj.handlers.clear()
+        for handler in logger.handlers:
+            discord_logger_obj.addHandler(handler)
+        discord_logger_obj.setLevel(logging.WARNING)  # Or INFO/DEBUG as needed
+
+        # Now run the bot
         try:
             asyncio.run(self.start())
         except KeyboardInterrupt:
@@ -71,5 +80,5 @@ class AxiomBot:
 
 
 if __name__ == "__main__":
-    bot = AxiomBot()
+    bot = DiscordBot()
     bot.run()
