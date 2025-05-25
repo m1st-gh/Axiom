@@ -70,8 +70,11 @@ class JarvisCommands(commands.Cog):
             response = self.jarvis.get_completion(
                 model="meta-llama/llama-4-scout:free",
                 messages=full_history,
-                max_tokens=450,
+                max_tokens=400,
             )
+
+            if len(response) > 2000:
+                response = response[:1999]
 
             await interaction.followup.send(
                 response or "I couldn't generate a response."
@@ -100,7 +103,7 @@ class JarvisCommands(commands.Cog):
             response = self.jarvis.get_completion(
                 model="meta-llama/llama-4-scout:free",
                 messages=full_history,
-                max_tokens=450,
+                max_tokens=400,
             )
 
             # Save AI response to history
@@ -111,7 +114,8 @@ class JarvisCommands(commands.Cog):
                     timestamp=datetime.now().timestamp(),
                 )
                 add_jarvis_message(ai_message)
-
+            if len(response) > 2000:
+                response = response[:1999]
             await interaction.followup.send(
                 response or "I couldn't generate a response."
             )
