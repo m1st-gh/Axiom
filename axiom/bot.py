@@ -19,6 +19,7 @@ class AxiomBot:
             "OPENROUTER_API_KEY",
             "AXIOM_DB_PATH",
             "JARVIS_SYSTEM_PROMPT_PATH",
+            "JARVIS_TLDR_PROMPT",
         )
 
         # Parse guild IDs
@@ -26,6 +27,7 @@ class AxiomBot:
 
         # Initialize bot with intents
         intents = discord.Intents.default()
+        intents.message_content = True
 
         self.bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
 
