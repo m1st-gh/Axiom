@@ -70,7 +70,7 @@ class JarvisCommands(commands.Cog):
             response = self.jarvis.get_completion(
                 model="meta-llama/llama-4-scout:free",
                 messages=full_history,
-                max_tokens=400,
+                max_tokens=250,
             )
 
             if len(response) > 2000:
@@ -103,7 +103,7 @@ class JarvisCommands(commands.Cog):
             response = self.jarvis.get_completion(
                 model="meta-llama/llama-4-scout:free",
                 messages=full_history,
-                max_tokens=400,
+                max_tokens=250,
             )
 
             # Save AI response to history
