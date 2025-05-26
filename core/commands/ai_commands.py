@@ -57,18 +57,12 @@ class AICommands(commands.Cog):
 
         # Append the current system time as a system message
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        current_time_message = {
-            f" The current system time is: {now}",
-        }
+        current_time_message = f" The current system time is: {now}"
 
-        self.summary_prompt["content"] = str(self.summary_prompt["content"]).concat(
-            current_time_message
-        )
-
+        self.summary_prompt["content"] += current_time_message
         # Compose the full history
         full_history = [self.summary_prompt] + message_history
 
-        logger.info(self.summary_prompt)
         try:
             response = self.ai_client.get_completion(
                 model=self.ai_model,
