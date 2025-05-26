@@ -61,7 +61,7 @@ class AICommands(commands.Cog):
             f" The current system time is: {now}",
         }
 
-        self.summary_prompt["content"] = self.summary_prompt["content"] + (
+        self.summary_prompt["content"] = str(self.summary_prompt["content"]).concat(
             current_time_message
         )
 
