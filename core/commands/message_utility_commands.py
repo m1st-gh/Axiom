@@ -91,5 +91,4 @@ async def forward_message(interaction: discord.Interaction, message: discord.Mes
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MessageUtilityCommands(bot))
-    bot.tree.add_command(reprint)
     bot.tree.add_command(forward_message)
