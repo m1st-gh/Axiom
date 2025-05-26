@@ -61,12 +61,14 @@ class AICommands(commands.Cog):
             f" The current system time is: {now}",
         }
 
-        # Compose the full history
-        full_history = [
-            self.summary_prompt["content"].append(current_time_message)
-        ] + message_history
+        self.summary_prompt["content"] = self.summary_prompt["content"] + (
+            current_time_message
+        )
 
-        logger.info(self.summary_prompt["content"].append(current_time_message))
+        # Compose the full history
+        full_history = [self.summary_prompt] + message_history
+
+        logger.info(self.summary_prompt)
         try:
             response = self.ai_client.get_completion(
                 model=self.ai_model,
