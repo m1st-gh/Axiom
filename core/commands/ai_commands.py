@@ -43,7 +43,7 @@ class AICommands(commands.Cog):
         await interaction.response.defer(thinking=True)
         if interaction.channel_id is not None:
             channel = self.bot.get_channel(interaction.channel_id)
-        messages = [message async for message in channel.history(limit=200)]
+        messages = [message async for message in channel.history(limit=25)]
 
         message_history = [
             ChatMessage.create_user_message(
@@ -58,13 +58,15 @@ class AICommands(commands.Cog):
         # Append the current system time as a system message
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         current_time_message = {
-            "role": "system",
-            "content": f"The current system time is: {now}",
+            f" The current system time is: {now}",
         }
 
         # Compose the full history
-        full_history = [self.summary_prompt, current_time_message] + message_history
+        full_history = [
+            self.summary_prompt["content"].append(current_time_message)
+        ] + message_history
 
+        logger.info(self.summary_prompt["content"].append(current_time_message))
         try:
             response = self.ai_client.get_completion(
                 model=self.ai_model,
