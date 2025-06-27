@@ -1,5 +1,5 @@
-from core.bot import DiscordBot
+from axiom.bot import Axiom
 
 if __name__ == "__main__":
-    bot = DiscordBot()
+    bot = Axiom()
     bot.run()
