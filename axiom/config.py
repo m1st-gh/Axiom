@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 from typing import List, Optional
+from axiom import logger
+
 
 class Config:
     __instance = None
@@ -11,20 +13,33 @@ class Config:
         return cls.__instance
 
     def __init__(self, config_file: Optional[Path] = None):
-        if hasattr(self, '_initialized'):
+        if hasattr(self, "_initialized"):
             return
         if config_file is None:
-            config_file = Path(__file__).parent.parent / 'config.json'
-        
-        with open(config_file, 'r') as f:
-            config_data = json.load(f)
+            config_file = Path(__file__).parent.parent / "config.json"
 
-        self.discord_api_token: str = config_data['discord_api_token']
-        self.openrouter_api_token: str = config_data['openrouter_api_token']
-        self.guild_ids: List[int] = config_data['guild_ids']
-        self.model: str = config_data['model']
-        self.max_tokens: int = config_data['max_tokens']
+        try:
+            with open(config_file, "r") as f:
+                config_data = json.load(f)
+            logger.info(f"Configuration loaded from {config_file}")
+        except FileNotFoundError:
+            logger.error(f"Configuration file not found at {config_file}")
+            raise
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON from {config_file}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"An unexpected error occurred while loading configuration: {e}")
+            raise
+
+        self.discord_api_token: str = config_data["discord_api_token"]
+        self.openrouter_api_token: str = config_data["openrouter_api_token"]
+        self.guild_ids: List[int] = config_data["guild_ids"]
+        self.model: str = config_data["model"]
+        self.max_tokens: int = config_data["max_tokens"]
+        self.prompts: dict = config_data["prompts"]
         self._initialized = True
+
 
 # Global instance
 config = Config()

@@ -1,98 +1,131 @@
 import discord
-from datetime import datetime
+from discord import app_commands, message
 from discord.ext import commands
-from discord import app_commands
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from axiom import logger
 from axiom.apis.orclient import OpenRouterClient
 from axiom.config import config
+from axiom.database import db
+from axiom.models import Message, User
 
 
 class AICommands(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.ai_client = OpenRouterClient(api_key=config.openrouter_api_token)
+        self.system_prompt = self._load_system_prompt()
 
-    @app_commands.command(name="summary")
-    async def summarize_channel(self, interaction: discord.Interaction):
-        """Ask Jarvis to summarize the last 200 messages."""
-        await interaction.response.defer(thinking=True)
-        if interaction.channel_id is not None:
-            channel = self.bot.get_channel(interaction.channel_id)
-        messages = [message async for message in channel.history(limit=25)]
+    def _load_system_prompt(self):
+        prompt_path = config.prompts.get("chat_bot")
+        if prompt_path:
+            try:
+                with open(prompt_path, "r") as f:
+                    return {"role": "system", "content": f.read()}
+            except FileNotFoundError:
+                logger.warning(f"System prompt file not found at {prompt_path}")
+        return None
 
-        message_history = [
-            ChatMessage.create_user_message(
-                f"Time: {message.created_at}, User:{message.author}, Message: {message.content}"
+    def _get_or_create_user(
+        self, session: Session, user_id: int, username: str
+    ) -> User:
+        user = session.get(User, user_id)
+        if user is None:
+            logger.info(f"New user: {username} ({user_id})")
+            user = User(user_id=user_id, username=username)
+            session.add(user)
+            session.commit()
+        elif user.username != username:
+            logger.info(
+                f"User {user_id} changed username from {user.username} to {username}"
             )
-            for message in messages
-        ]
-        message_history = [
-            {"role": msg.role, "content": msg.content} for msg in message_history
-        ]
+            user.username = username
+            session.commit()
+        return user
 
-        # Append the current system time as a system message
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        current_time_message = f" The current system time is: {now}"
+    def _get_message_history(self, session: Session, user_id: int) -> list[dict]:
+        stmt = select(Message).where(Message.user_id == user_id)
+        messages = session.execute(stmt).scalars().all()
+        return [{"role": msg.role, "content": msg.message_content} for msg in messages]
 
-        self.summary_prompt["content"] += current_time_message
-        # Compose the full history
-        full_history = [self.summary_prompt] + message_history
+    def _get_ai_response(self, messages: list[dict]) -> str:
+        return self.ai_client.get_completion(
+            model=config.model,
+            messages=messages,
+            max_tokens=config.max_tokens,
+            temperature=0.7,
+        )
 
-        try:
-            response = self.ai_client.get_completion(
-                model=self.ai_model,
-                messages=full_history,
-                max_tokens=self.max_tokens,
-            )
-
-            if len(response) > 2000:
-                response = response[:1999]
-
-            await interaction.followup.send(
-                response or "I couldn't generate a response."
-            )
-
-        except Exception as e:
-            await interaction.followup.send(f"Error: {str(e)}")
+    def _save_message(self, session: Session, user_id: int, role: str, content: str):
+        message = Message(user_id=user_id, role=role, message_content=content)
+        session.add(message)
+        session.commit()
 
     @app_commands.command(name="ask")
     @app_commands.describe(query="Your question for the AI assistant")
     async def ask_ai(self, interaction: discord.Interaction, query: str):
-
         await interaction.response.defer(thinking=True)
-        channel = interaction.channel
-        if not isinstance(channel, discord.TextChannel):
-            # add return message
+        logger.info(
+            f"User {interaction.user} in guild {interaction.guild} used /ask with query: {query}"
+        )
+
+        user_id = interaction.user.id
+        username = interaction.user.display_name
+
+        with db.get_session() as session:
+            user = self._get_or_create_user(session, user_id, username)
+            self._save_message(session, user.user_id, "user", query)
+            message_history = self._get_message_history(session, user.user_id)
+            message_history.insert(0, self.system_prompt)
+            try:
+                response = self._get_ai_response(message_history)
+                self._save_message(session, user.user_id, "assistant", response)
+                await self._send_split_message(interaction, response)
+
+            except Exception as e:
+                logger.error(f"Error getting completion from OpenRouter: {e}")
+                await interaction.followup.send(f"Error: {str(e)}")
+
+    async def _send_split_message(self, interaction: discord.Interaction, message: str):
+        logger.info(f"Sending message to {interaction.user} in {interaction.channel}")
+        if len(message) <= 2000:
+            await interaction.followup.send(content=message)
             return
-        messages = [message async for message in channel.history(after=)]
 
-        
+        chunks = []
+        current_chunk = ""
+        lines = message.split("\n")
 
-        try:
-            response = self.ai_client.get_completion(
-                model=config.model,
-                messages=,
-                max_tokens=config.max_tokens,
-            )
+        for line in lines:
+            if len(current_chunk) + len(line) + 1 > 2000:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = ""
 
-            # Save AI response to history
-            if response:
-                ai_message = ChatMessage(
-                    role="assistant",
-                    content=response,
-                    timestamp=datetime.now().timestamp(),
-                )
-                add_chat_message(ai_message)
+                if len(line) > 2000:
+                    words = line.split(" ")
+                    for word in words:
+                        if len(current_chunk) + len(word) + 1 > 2000:
+                            if current_chunk:
+                                chunks.append(current_chunk.strip())
+                                current_chunk = ""
+                        current_chunk += word + " "
+                else:
+                    current_chunk = line + "\n"
+            else:
+                current_chunk += line + "\n"
 
-            if len(response) > 2000:
-                response = response[:1999]
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
 
-            await interaction.followup.send(
-                response or "I couldn't generate a response."
-            )
-
-        except Exception as e:
-            await interaction.followup.send(f"Error: {str(e)}")
+        for i, chunk in enumerate(chunks):
+            if i == 0:
+                await interaction.followup.send(content=chunk)
+            else:
+                await interaction.followup.send(content=chunk)
 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(AICommands(bot))
+

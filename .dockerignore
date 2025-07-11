@@ -1,0 +1,6 @@
+.git
+.vscode
+.gitignore
+*.db
+config.json
+
