@@ -1,7 +1,7 @@
 import logging
 import coloredlogs
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 coloredlogs.install(
     level="INFO",

@@ -1,5 +1,5 @@
 from openai import OpenAI, APIError
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, MutableMapping
 from axiom import logger
 
 
@@ -8,14 +8,14 @@ class OpenRouterClient:
     A client for interacting with the OpenRouter API using the OpenAI Python library.
     """
 
-    BASE_URL = "https://openrouter.ai/api/v1"
+    BASE_URL: str = "https://openrouter.ai/api/v1"
 
     def __init__(
         self,
         api_key: str,
         site_url: Optional[str] = None,
         app_name: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Initializes the OpenRouterClient.
 
@@ -30,14 +30,14 @@ class OpenRouterClient:
             logger.error("OpenRouter API key is required.")
             raise ValueError("OpenRouter API key is required.")
 
-        self.api_key = api_key
-        self.default_headers = {}
+        self.api_key: str = api_key
+        self.default_headers: MutableMapping[str, str] = {}
         if site_url:
             self.default_headers["HTTP-Referer"] = site_url
         if app_name:
             self.default_headers["X-Title"] = app_name
 
-        self.client = OpenAI(
+        self.client: OpenAI = OpenAI(
             base_url=self.BASE_URL,
             api_key=self.api_key,
             default_headers=self.default_headers if self.default_headers else None,
@@ -70,7 +70,7 @@ class OpenRouterClient:
         """
         logger.info(f"Requesting completion for model: {model}")
         try:
-            params = {
+            params: Dict[str, Any] = {
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
@@ -80,10 +80,10 @@ class OpenRouterClient:
             if max_tokens is not None:
                 params["max_tokens"] = max_tokens
 
-            completion = self.client.chat.completions.create(**params)
+            completion: Any = self.client.chat.completions.create(**params)
 
             if completion.choices and completion.choices[0].message:
-                content = completion.choices[0].message.content
+                content: Optional[str] = completion.choices[0].message.content
                 logger.info(f"Received completion from model: {model}")
                 return content
             logger.warning(f"No completion content received for model: {model}")

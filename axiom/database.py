@@ -1,15 +1,15 @@
 from sqlalchemy import create_engine, Engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession
 from contextlib import contextmanager
 from .models import Base
-from typing import Generator
+from typing import Generator, Type
 from axiom import logger
 
 
 class _Database:
     def __init__(self, db_path: str = "axiom.db") -> None:
         self.engine: Engine = create_engine(f"sqlite:///{db_path}")
-        self.Session: sessionmaker[Session] = sessionmaker(bind=self.engine)
+        self.Session: Type[SQLAlchemySession] = sessionmaker(bind=self.engine)
         logger.info(f"Database engine initialized for {db_path}")
 
     def ensure_schema(self) -> None:
@@ -17,8 +17,8 @@ class _Database:
         logger.info("Database schema ensured.")
 
     @contextmanager
-    def get_session(self) -> Generator[Session, None, None]:
-        session: Session = self.Session()
+    def get_session(self) -> Generator[SQLAlchemySession, None, None]:
+        session: SQLAlchemySession = self.Session()
         logger.debug("Database session opened.")
         try:
             yield session
@@ -34,4 +34,4 @@ class _Database:
 
 
 # Create a single, global instance of the Database
-db = _Database()
+db: _Database = _Database()

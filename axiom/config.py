@@ -1,18 +1,18 @@
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from axiom import logger
 
 
 class Config:
-    __instance = None
+    __instance: Optional["Config"] = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any) -> "Config":
         if not cls.__instance:
             cls.__instance = super(Config, cls).__new__(cls)
         return cls.__instance
 
-    def __init__(self, config_file: Optional[Path] = None):
+    def __init__(self, config_file: Optional[Path] = None) -> None:
         if hasattr(self, "_initialized"):
             return
         if config_file is None:
@@ -20,7 +20,7 @@ class Config:
 
         try:
             with open(config_file, "r") as f:
-                config_data = json.load(f)
+                config_data: Dict[str, Any] = json.load(f)
             logger.info(f"Configuration loaded from {config_file}")
         except FileNotFoundError:
             logger.error(f"Configuration file not found at {config_file}")
@@ -29,7 +29,9 @@ class Config:
             logger.error(f"Error decoding JSON from {config_file}: {e}")
             raise
         except Exception as e:
-            logger.error(f"An unexpected error occurred while loading configuration: {e}")
+            logger.error(
+                f"An unexpected error occurred while loading configuration: {e}"
+            )
             raise
 
         self.discord_api_token: str = config_data["discord_api_token"]
@@ -37,9 +39,9 @@ class Config:
         self.guild_ids: List[int] = config_data["guild_ids"]
         self.model: str = config_data["model"]
         self.max_tokens: int = config_data["max_tokens"]
-        self.prompts: dict = config_data["prompts"]
-        self._initialized = True
+        self.prompts: Dict[str, str] = config_data["prompts"]
+        self._initialized: bool = True
 
 
 # Global instance
-config = Config()
+config: Config = Config()

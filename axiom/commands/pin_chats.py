@@ -1,9 +1,10 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from sqlalchemy import select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import select, Select
+from sqlalchemy.dialects.sqlite import insert, Insert
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from axiom import logger
 from axiom.database import db
@@ -11,11 +12,15 @@ from axiom.models import PinChannel
 
 
 class PinChats(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot: commands.Bot = bot
 
-    def _set_pin_channel(self, session: Session, guild_id: int, channel_id: int):
-        stmt = insert(PinChannel).values(guild_id=guild_id, channel_id=channel_id)
+    def _set_pin_channel(
+        self, session: Session, guild_id: int, channel_id: int
+    ) -> None:
+        stmt: Insert = insert(PinChannel).values(
+            guild_id=guild_id, channel_id=channel_id
+        )
         stmt = stmt.on_conflict_do_update(
             index_elements=["guild_id"], set_={"channel_id": channel_id}
         )
@@ -23,9 +28,10 @@ class PinChats(commands.Cog):
         session.commit()
         logger.info(f"Set pin channel for guild {guild_id} to {channel_id}")
 
-    def _get_pin_channel(self, session: Session, guild_id: int) -> int | None:
-        stmt = select(PinChannel).where(PinChannel.guild_id == guild_id)
-        if (channel := session.scalar(stmt)) is not None:
+    def _get_pin_channel(self, session: Session, guild_id: int) -> Optional[int]:
+        stmt: Select = select(PinChannel).where(PinChannel.guild_id == guild_id)
+        channel: Optional[PinChannel] = session.scalar(stmt)
+        if channel is not None:
             return channel.channel_id
         return None
 
@@ -33,7 +39,7 @@ class PinChats(commands.Cog):
         name="set_forward_channel",
         description="Set the current channel for forwarding pinned messages",
     )
-    async def set_forward_channel_cmd(self, interaction: discord.Interaction):
+    async def set_forward_channel_cmd(self, interaction: discord.Interaction) -> None:
         logger.info(
             f"User {interaction.user} in guild {interaction.guild} used /set_forward_channel in channel {interaction.channel}"
         )
@@ -50,7 +56,7 @@ class PinChats(commands.Cog):
             return
 
         with db.get_session() as session:
-            self._set_pin_channel(session, interaction.guild_id, interaction.channel_id)
+            self._set_pin_channel(session, interaction.guild_id, interaction.channel.id)
 
         await interaction.response.send_message(
             f"Forward channel has been set to {interaction.channel.mention}"
@@ -58,7 +64,9 @@ class PinChats(commands.Cog):
 
 
 @app_commands.context_menu(name="Pin message")
-async def forward_message(interaction: discord.Interaction, message: discord.Message):
+async def forward_message(
+    interaction: discord.Interaction, message: discord.Message
+) -> None:
     logger.info(
         f"User {interaction.user} in guild {interaction.guild} used 'Pin message' on message {message.id} in channel {message.channel}"
     )
@@ -69,21 +77,23 @@ async def forward_message(interaction: discord.Interaction, message: discord.Mes
         return
 
     with db.get_session() as session:
-        cog = interaction.client.get_cog("PinChats")
+        cog: Optional[PinChats] = interaction.client.get_cog("PinChats")
         if not cog:
             logger.error("PinChats cog not found.")
             await interaction.response.send_message(
                 "An unexpected error occurred.", ephemeral=True
             )
             return
-        channel_id = cog._get_pin_channel(session, interaction.guild_id)
+        channel_id: Optional[int] = cog._get_pin_channel(session, interaction.guild_id)
     if not channel_id:
         await interaction.response.send_message(
             "Please use `/set_forward_channel` first"
         )
         return
 
-    channel = interaction.client.get_channel(channel_id)
+    channel: Optional[
+        discord.abc.GuildChannel | discord.Thread | discord.PrivateChannel
+    ] = interaction.client.get_channel(channel_id)
     if not channel:
         logger.warning(f"Forward channel not found for guild {interaction.guild_id}")
         await interaction.response.send_message(
@@ -103,6 +113,6 @@ async def forward_message(interaction: discord.Interaction, message: discord.Mes
     )
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(PinChats(bot))
     bot.tree.add_command(forward_message)
