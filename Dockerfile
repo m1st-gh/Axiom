@@ -4,12 +4,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin
 
 WORKDIR /app
 ENV UV_LINK_MODE=copy \
-  UV_COMPILE_BYTECODE=1 \
-  UV_PYTHON_DOWNLOADS=never \
-  UV_PROJECT_ENVIRONMENT=/app
+  UV_COMPILE_BYTECODE=1 
 
 COPY . .
-RUN uv sync --locked --link-mode=copy
 RUN uv python install 3.13
+RUN uv sync --locked --link-mode=copy
 
 CMD ["uv", "run", "python", "run.py"]
