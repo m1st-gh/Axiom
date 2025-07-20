@@ -1,0 +1,11 @@
+{
+  "discord_api_token": "",
+  "openrouter_api_token": "",
+  "guild_ids": [],
+  "model": "meta-llama/llama-3.2-3b-instruct",
+  "max_tokens": 8192,
+  "prompts": {
+    "chat_bot": "prompts/chat_bot.txt",
+    "summerize_bot": ""
+  }
+}
