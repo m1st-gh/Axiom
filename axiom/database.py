@@ -7,7 +7,7 @@ from axiom import logger
 
 
 class _Database:
-    def __init__(self, db_path: str = "axiom.db") -> None:
+    def __init__(self, db_path: str = "data/axiom.db") -> None:
         self.engine: Engine = create_engine(f"sqlite:///{db_path}")
         self.Session: Type[SQLAlchemySession] = sessionmaker(bind=self.engine)
         logger.info(f"Database engine initialized for {db_path}")
